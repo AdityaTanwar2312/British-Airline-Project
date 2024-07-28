@@ -113,4 +113,82 @@ select * from Sample where (
     seat_type='First Class'
 )
 
+-- Window function
+
+-- Note: Rolling total is a vey usefull method that can be used to calculate increasing figures like sales etc.
+-- just use order by statement within Partition by and specify value (just forr knowledge purpose not of use in this example)
 -- ROW_NUMBER(), RANK() and DENSE_RANK()
+SELECT countries.Continent ,ba_reviews.place, ba_reviews.aircraft,
+AVG(ba_reviews.rating) OVER (PARTITION BY ba_reviews.aircraft) as avg_rating
+FROM ba_reviews
+JOIN countries ON
+ba_reviews.place = countries.Country
+ORDER BY 2;
+
+-- ROW_NUMBER()
+SELECT a.Continent, a.Country, a.a_count, a.avg_rating,
+ROW_NUMBER() OVER(PARTITION BY a.Continent ORDER BY avg_rating)
+FROM(
+    SELECT
+    countries.Continent,
+    countries.Country,
+    COUNT(ba_reviews.aircraft) AS a_count,
+    AVG(ba_reviews.rating) AS avg_rating
+    FROM countries
+    RIGHT JOIN ba_reviews ON countries.Country = ba_reviews.place
+    GROUP BY Continent, Country
+    ORDER BY 1
+) a;
+
+-- Similarly we can use RANK() and DENSE_RANK() methods
+SELECT a.Continent, a.Country, a.a_count, a.avg_rating,
+RANK() OVER(PARTITION BY a.Continent ORDER BY avg_rating)
+FROM(
+    SELECT
+    countries.Continent,
+    countries.Country,
+    COUNT(ba_reviews.aircraft) AS a_count,
+    AVG(ba_reviews.rating) AS avg_rating
+    FROM countries
+    RIGHT JOIN ba_reviews ON countries.Country = ba_reviews.place
+    GROUP BY Continent, Country
+    ORDER BY 1
+) a;
+
+SELECT a.Continent, a.Country, a.a_count, a.avg_rating,
+DENSE_RANK() OVER(PARTITION BY a.Continent ORDER BY avg_rating)
+FROM(
+    SELECT
+    countries.Continent,
+    countries.Country,
+    COUNT(ba_reviews.aircraft) AS a_count,
+    AVG(ba_reviews.rating) AS avg_rating
+    FROM countries
+    RIGHT JOIN ba_reviews ON countries.Country = ba_reviews.place
+    GROUP BY Continent, Country
+    ORDER BY 1
+) a;
+
+-- CTEs
+
+-- This query will give us Average on the average rating for different aircrafts
+WITH CTE AS
+(
+SELECT countries.Continent ,ba_reviews.place, ba_reviews.aircraft,
+AVG(ba_reviews.rating) OVER (PARTITION BY ba_reviews.aircraft) as avg_rating
+FROM ba_reviews
+JOIN countries ON
+ba_reviews.place = countries.Country
+ORDER BY 1
+)
+SELECT Continent, AVG(avg_rating)
+FROM CTE
+GROUP BY Continent
+ORDER BY 1
+;
+
+-- This query will give us overall average for all the reviews for a place
+SELECT place, AVG(rating)
+FROM ba_reviews
+GROUP BY place
+ORDER BY 1;
